@@ -2,3 +2,4 @@ Sphinx==7.2.6
 pyenchant==3.2.2
 sphinxcontrib-spelling==8.0.0
 sphinx-rtd-theme==2.0.0
+django-ratelimit==4.1.0
