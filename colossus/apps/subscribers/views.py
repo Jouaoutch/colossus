@@ -1,26 +1,21 @@
+
 import base64
 import logging
 from uuid import UUID
 
 from django.contrib import messages
-from django.http import (
-    Http404, HttpRequest, HttpResponse, HttpResponseBadRequest,
-    HttpResponseRedirect,
-)
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import (
-    require_GET, require_http_methods, require_POST,
-)
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from throttle.decorators import throttle
 
 import requests
-from django.ratelimit.decorators import ratelimit
-
 from colossus.apps.campaigns.models import Campaign, Email, Link
 from colossus.apps.core.models import Token
 from colossus.apps.lists.models import MailingList
-from colossus.utils import get_client_ip, ip_address_key
+from colossus.utils import get_client_ip
 
 from .constants import Status
 from .forms import SubscribeForm, UnsubscribeForm
@@ -28,11 +23,10 @@ from .models import Subscriber
 
 logger = logging.getLogger(__name__)
 
-
 @csrf_exempt
 @require_POST
 def manage(request):
-    for k, v in request.POST.items():
+   for k, v in request.POST.items():
         print('%s ==> %s' % (k, v))
 
     subject = request.POST.get('subject', '')
@@ -43,10 +37,9 @@ def manage(request):
         return HttpResponse('sub action')
     return HttpResponse('no action tiggered.')
 
-
 @csrf_exempt
 @require_http_methods(['GET', 'HEAD', 'POST'])
-@ratelimit(key=ip_address_key, rate='10/5m', method='POST')
+@throttle(zone='subscribe')
 def subscribe(request, mailing_list_uuid):
     mailing_list = get_object_or_404(MailingList, uuid=mailing_list_uuid)
     is_limited = getattr(request, 'limited', False)
@@ -90,7 +83,7 @@ def subscribe(request, mailing_list_uuid):
 
 @require_GET
 def confirm_subscription(request, mailing_list_uuid):
-    mailing_list = get_object_or_404(MailingList, uuid=mailing_list_uuid)
+     mailing_list = get_object_or_404(MailingList, uuid=mailing_list_uuid)
     form_template = mailing_list.get_subscribe_thank_you_page_template()
 
     if form_template.redirect_url:
@@ -101,10 +94,9 @@ def confirm_subscription(request, mailing_list_uuid):
         'content': form_template.content_html
     })
 
-
 @require_GET
 def confirm_double_optin_token(request, mailing_list_uuid, token):
-    try:
+     try:
         mailing_list = MailingList.objects.get(uuid=mailing_list_uuid)
     except MailingList.DoesNotExist:
         return HttpResponseBadRequest('The requested list does not exist.', content_type='text/plain')
@@ -127,9 +119,8 @@ def confirm_double_optin_token(request, mailing_list_uuid, token):
         'content': form_template.content_html
     })
 
-
 @require_http_methods(['GET', 'POST'])
-@ratelimit(key=ip_address_key, rate='5/5m', method='POST')
+@throttle(zone='unsubscribe_manual')
 def unsubscribe_manual(request, mailing_list_uuid):
     mailing_list = get_object_or_404(MailingList, uuid=mailing_list_uuid)
     is_limited = getattr(request, 'limited', False)
@@ -157,9 +148,8 @@ def unsubscribe_manual(request, mailing_list_uuid):
         'content': content
     })
 
-
 @require_GET
-@ratelimit(key=ip_address_key, rate='5/5m', method='GET', block=True)
+@throttle(zone='unsubscribe', rate='5/5m', method='GET', block=True)
 def unsubscribe(request, mailing_list_uuid, subscriber_uuid, campaign_uuid):
     mailing_list = get_object_or_404(MailingList, uuid=mailing_list_uuid)
 
@@ -179,7 +169,6 @@ def unsubscribe(request, mailing_list_uuid, subscriber_uuid, campaign_uuid):
     subscriber.unsubscribe(request, campaign)
     return redirect('subscribers:goodbye', mailing_list_uuid=mailing_list_uuid)
 
-
 def goodbye(request, mailing_list_uuid):
     mailing_list = get_object_or_404(MailingList, uuid=mailing_list_uuid)
     form_template = mailing_list.get_unsubscribe_success_page_template()
@@ -193,11 +182,10 @@ def goodbye(request, mailing_list_uuid):
         'content': content
     })
 
-
 @require_GET
-@ratelimit(key=ip_address_key, rate='100/h', method='GET', block=True)
+@throttle(zone='track_open', rate='100/h', method='GET', block=True)
 def track_open(request, email_uuid, subscriber_uuid):
-    try:
+     try:
         email = Email.objects.get(uuid=email_uuid)
         subscriber = Subscriber.objects.get(uuid=subscriber_uuid)
         subscriber.open(email)
@@ -209,11 +197,10 @@ def track_open(request, email_uuid, subscriber_uuid):
     return HttpResponse(pixel, content_type='image/png')
 
 
+
 @require_GET
-@ratelimit(key=ip_address_key, rate='100/h', method='GET', block=True)
-def track_click(request: HttpRequest,
-                link_uuid: UUID,
-                subscriber_uuid: UUID) -> HttpResponseRedirect:
+@throttle(zone='track_click', rate='100/h', method='GET', block=True)
+def track_click(request: HttpRequest, link_uuid: UUID, subscriber_uuid: UUID) -> HttpResponseRedirect:
     """
     Track subscriber's click on links on email from campaigns.
     Triggers celery tasks to update total and unique click count.
