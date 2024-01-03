@@ -1,10 +1,10 @@
 beautifulsoup4==4.12.2
 celery==5.2.0
 dj-database-url==2.1.0
-Django==5.0.1
+#Django==5.0.1
 django-crispy-forms==2.1
 django-debug-toolbar==4.2.0
-django-ratelimit==4.1.0
+#django-ratelimit==4.1.0
 geoip2==4.8.0
 html2text==2020.1.16
 psycopg2-binary==2.9.9
@@ -12,3 +12,7 @@ python-decouple==3.8
 pytz==2023.3.post1
 requests==2.31.0
   
+Django==3.2  # replace with your Django version
+gunicorn==20.0.4  # or another WSGI server you might be using
+django-ratelimit==3.0.1  # version may vary
+celery==5.2.0  # replace with the version you are using
