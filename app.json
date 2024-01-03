@@ -26,7 +26,7 @@
       "generator": "secret"
     },
     "ALLOWED_HOSTS": {
-      "value": "https://joaodofuturo-2387e3b59c81.herokuapp.com/"
+      "value": "joaodofuturo-2387e3b59c81.herokuapp.com/"
     },
     "COLOSSUS_HTTPS_ONLY": {
       "value": "True"
