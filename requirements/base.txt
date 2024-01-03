@@ -1,5 +1,5 @@
 beautifulsoup4==4.12.2
-celery==5.3.6
+celery==4.4.7
 dj-database-url==2.1.0
 Django==5.0.1
 django-crispy-forms==2.1
